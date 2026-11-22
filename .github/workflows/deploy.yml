@@ -11,32 +11,6 @@ permissions:
   contents: read
   id-token: write
 
-name: Inspect GitHub OIDC claims
-  shell: bash
-  run: |
-    node <<'NODE'
-    const response = await fetch(
-      `${process.env.ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com`,
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN}`
-        }
-      }
-    );
-
-    if (!response.ok) throw new Error("Unable to retrieve OIDC token");
-
-    const { value } = await response.json();
-    const payload = JSON.parse(
-      Buffer.from(value.split('.')[1], 'base64url').toString()
-    );
-
-    console.log(JSON.stringify({
-      iss: payload.iss,
-      aud: payload.aud,
-      sub: payload.sub
-    }, null, 2));
-    NODE
 
 jobs:
   deploy:
@@ -61,6 +35,33 @@ jobs:
 
       - name: Verify build output
         run: test -f dist/aws-deploy-2/browser/index.html
+
+      - name: Inspect GitHub OIDC claims
+        shell: bash
+        run: |
+          node <<'NODE'
+          const response = await fetch(
+            `${process.env.ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com`,
+            {
+              headers: {
+                Authorization: `Bearer ${process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN}`
+              }
+            }
+          );
+
+          if (!response.ok) throw new Error("Unable to retrieve OIDC token");
+
+          const { value } = await response.json();
+          const payload = JSON.parse(
+            Buffer.from(value.split('.')[1], 'base64url').toString()
+          );
+
+          console.log(JSON.stringify({
+            iss: payload.iss,
+            aud: payload.aud,
+            sub: payload.sub
+          }, null, 2));
+          NODE
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
